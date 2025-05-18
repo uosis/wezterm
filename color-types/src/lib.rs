@@ -1017,6 +1017,13 @@ impl LinearRgba {
     }
 
     #[cfg(feature = "std")]
+    pub fn contrast_difference(&self, other: &Self) -> f32 {
+        let lum_a = self.relative_luminance();
+        let lum_b = other.relative_luminance();
+        (lum_a - lum_b).abs()
+    }
+
+    #[cfg(feature = "std")]
     fn lum_contrast_ratio(lum_a: f32, lum_b: f32) -> f32 {
         let a = lum_a + 0.05;
         let b = lum_b + 0.05;
@@ -1109,6 +1116,27 @@ impl LinearRgba {
 
         // What they had was as good as it gets
         None
+    }
+
+    /// Assuming that `self` represents the foreground color
+    /// and `other` represents the background color, if the
+    /// contrast difference is below min_diff, returns Some color
+    /// that equals or exceeds the min_diff to use as an alternative
+    /// foreground color.
+    /// If the ratio is already suitable, returns None; the caller should
+    /// continue to use `self` as the foreground color.
+    #[cfg(feature = "std")]
+    pub fn ensure_contrast_difference(&self, other: &Self, min_diff: f32) -> Option<Self> {
+        let black = Self::with_components(0.0, 0.0, 0.0, 1.0);
+        let white = Self::with_components(1.0, 1.0, 1.0, 1.0);
+
+        if other.contrast_difference(self) >= min_diff {
+            None
+        } else if other.contrast_difference(&black) >= min_diff {
+            Some(black)
+        } else {
+            Some(white)
+        }
     }
 }
 
